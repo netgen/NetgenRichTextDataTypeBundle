@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<software>
+    <metadata>
+        <name>eZ Rich Text</name>
+        <version>//autogentag//</version>
+        <copyright>Copyright (C) 2016 Netgen d.o.o.</copyright>
+        <license>//EZP_LICENSE//</license>
+        <info_url>http://www.netgenlabs.com</info_url>
+    </metadata>
+</software>

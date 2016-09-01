@@ -1,0 +1,10 @@
+{% block field_attributes %}
+{% spaceless %}
+    {% set attr = attr|default( {} ) %}
+    {% for attrname, attrvalue in attr %} {{ attrname }}="{{ attrvalue }}" {% endfor %}
+{% endspaceless %}
+{% endblock %}
+
+<div {{ block( 'field_attributes' ) }}>
+    {{ value.xml|richtext_to_html5|raw }}
+</div>

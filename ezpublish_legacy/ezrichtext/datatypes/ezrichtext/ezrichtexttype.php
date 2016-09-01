@@ -1,0 +1,425 @@
+<?php
+
+use eZ\Publish\Core\FieldType\RichText\Value;
+use eZ\Publish\API\Repository\Exceptions\InvalidArgumentException;
+
+class eZRichTextType extends eZDataType
+{
+    const DATA_TYPE_STRING = 'ezrichtext';
+
+    const NUM_ROWS_VARIABLE = '_ezrichtext_num_rows_';
+    const NUM_ROWS_FIELD = 'data_int1';
+
+    const RICH_TEXT_VARIABLE = '_ezrichtext_data_text_';
+    const RICH_TEXT_FIELD = 'data_text';
+
+    /**
+     * @var \Symfony\Component\DependencyInjection\ContainerInterface
+     */
+    protected $container;
+
+    /**
+     * @var \eZ\Publish\Core\FieldType\RichText\Type
+     */
+    protected $fieldType;
+
+    /**
+     * @var \eZ\Publish\Core\FieldType\RichText\Validator
+     */
+    protected $internalFormatValidator;
+
+    /**
+     * Constructor.
+     */
+    public function __construct()
+    {
+        parent::eZDataType(
+            self::DATA_TYPE_STRING,
+            ezpI18n::tr('extension/ezrichtext/datatypes', 'Rich text'),
+            array('serialize_supported' => true)
+        );
+
+        $this->container = ezpKernel::instance()->getServiceContainer();
+
+        $this->fieldType = $this->container->get('ezpublish.fieldtype.ezrichtext');
+        $this->internalFormatValidator = $this->container->get('ezpublish.fieldtype.ezrichtext.validator.docbook');
+    }
+
+    /**
+     * Initializes the content class attribute.
+     *
+     * @param eZContentClassAttribute $classAttribute
+     */
+    public function initializeClassAttribute($classAttribute)
+    {
+        if ($classAttribute->attribute(self::NUM_ROWS_FIELD) === null) {
+            $classAttribute->setAttribute(self::NUM_ROWS_FIELD, 10);
+        }
+
+        $classAttribute->store();
+    }
+
+    /**
+     * Initializes content object attribute based on another attribute.
+     *
+     * @param eZContentObjectAttribute $objectAttribute
+     * @param eZContentObjectVersion $currentVersion
+     * @param eZContentObjectAttribute $originalContentObjectAttribute
+     */
+    public function initializeObjectAttribute($objectAttribute, $currentVersion, $originalContentObjectAttribute)
+    {
+        $richText = $currentVersion != false ?
+            $originalContentObjectAttribute->content() :
+            new eZRichText();
+
+        $objectAttribute->setContent($richText);
+        $objectAttribute->store();
+    }
+
+    /**
+     * Validates class attribute HTTP input.
+     *
+     * @param eZHTTPTool $http
+     * @param string $base
+     * @param eZContentClassAttribute $classAttribute
+     *
+     * @return bool
+     */
+    public function validateClassAttributeHTTPInput($http, $base, $classAttribute)
+    {
+        $classAttributeId = $classAttribute->attribute('id');
+
+        $numberOfRows = (int)$http->postVariable($base . self::NUM_ROWS_VARIABLE . $classAttributeId, 10);
+
+        return $numberOfRows > 0 ? eZInputValidator::STATE_ACCEPTED : eZInputValidator::STATE_INVALID;
+    }
+
+    /**
+     * Fetches class attribute HTTP input and stores it.
+     *
+     * @param eZHTTPTool $http
+     * @param string $base
+     * @param eZContentClassAttribute $classAttribute
+     *
+     * @return bool
+     */
+    public function fetchClassAttributeHTTPInput($http, $base, $classAttribute)
+    {
+        $classAttributeId = $classAttribute->attribute('id');
+
+        $numberOfRows = (int)$http->postVariable($base . self::NUM_ROWS_VARIABLE . $classAttributeId, 10);
+
+        if ($numberOfRows <= 0) {
+            return false;
+        }
+
+        $classAttribute->setAttribute(self::NUM_ROWS_FIELD, $numberOfRows);
+
+        return true;
+    }
+
+    /**
+     * Validates the input and returns true if the input was valid for this datatype.
+     *
+     * @param eZHTTPTool $http
+     * @param string $base
+     * @param eZContentObjectAttribute $objectAttribute
+     *
+     * @return bool
+     */
+    public function validateObjectAttributeHTTPInput($http, $base, $objectAttribute)
+    {
+        $objectAttributeId = $objectAttribute->attribute('id');
+
+        $value = trim($http->postVariable($base . self::RICH_TEXT_VARIABLE . $objectAttributeId, ''));
+
+        if (empty($value) || $value === Value::EMPTY_VALUE) {
+            if ($objectAttribute->validateIsRequired()) {
+                $objectAttribute->setValidationError(ezpI18n::tr('extension/ezrichtext/datatypes', 'Rich text is required.'));
+
+                return eZInputValidator::STATE_INVALID;
+            }
+
+            return eZInputValidator::STATE_ACCEPTED;
+        }
+
+        try {
+            $value = $this->fieldType->acceptValue($value);
+        } catch (InvalidArgumentException $e) {
+            $objectAttribute->setValidationError(ezpI18n::tr('extension/ezrichtext/datatypes', 'Attribute contains invalid data.'));
+
+            return eZInputValidator::STATE_INVALID;
+        }
+
+        $errors = $this->internalFormatValidator->validate($value->xml);
+
+        if (!empty($errors)) {
+            $objectAttribute->setValidationError(ezpI18n::tr('extension/ezrichtext/datatypes', "Validation of XML content failed:\n" . implode("\n", $errors)));
+
+            return eZInputValidator::STATE_INVALID;
+        }
+
+        return eZInputValidator::STATE_ACCEPTED;
+    }
+
+    /**
+     * Fetches the HTTP POST input and stores it in the data instance.
+     *
+     * @param eZHTTPTool $http
+     * @param string $base
+     * @param eZContentObjectAttribute $objectAttribute
+     *
+     * @return bool
+     */
+    public function fetchObjectAttributeHTTPInput($http, $base, $objectAttribute)
+    {
+        $objectAttributeId = $objectAttribute->attribute('id');
+
+        if (!$http->hasPostVariable($base . self::RICH_TEXT_VARIABLE . $objectAttributeId)) {
+            return false;
+        }
+
+        $value = trim($http->postVariable($base . self::RICH_TEXT_VARIABLE . $objectAttributeId));
+
+        $richText = new eZRichText($value);
+        $objectAttribute->setContent($richText);
+
+        return true;
+    }
+
+    /**
+     * Returns true if content object attribute has content.
+     *
+     * @param eZContentObjectAttribute $objectAttribute
+     *
+     * @return bool
+     */
+    public function hasObjectAttributeContent($objectAttribute)
+    {
+        $richText = $objectAttribute->content();
+        if (!$richText instanceof eZRichText) {
+            return false;
+        }
+
+        return !$this->fieldType->isEmptyValue($richText->getValue());
+    }
+
+    /**
+     * Returns the content.
+     *
+     * @param eZContentObjectAttribute $objectAttribute
+     *
+     * @return mixed
+     */
+    public function objectAttributeContent($objectAttribute)
+    {
+        return new eZRichText($objectAttribute->attribute(self::RICH_TEXT_FIELD));
+    }
+
+    /**
+     * Stores the object attribute.
+     *
+     * @param eZContentObjectAttribute $objectAttribute
+     */
+    public function storeObjectAttribute($objectAttribute)
+    {
+        $objectAttribute->setAttribute(self::RICH_TEXT_FIELD, (string)$objectAttribute->content());
+    }
+
+    /**
+     * Returns string representation of a content object attribute.
+     *
+     * @param eZContentObjectAttribute $objectAttribute
+     *
+     * @return string
+     */
+    public function toString($objectAttribute)
+    {
+        $richText = $objectAttribute->content();
+
+        return $richText instanceof eZRichText ? (string)$richText : Value::EMPTY_VALUE;
+    }
+
+    /**
+     * Creates the content object attribute from string representation.
+     *
+     * @param eZContentObjectAttribute $objectAttribute
+     * @param string $string
+     *
+     * @return bool
+     */
+    public function fromString($objectAttribute, $string)
+    {
+        try {
+            $value = $this->fieldType->acceptValue($string);
+        } catch (InvalidArgumentException $e) {
+            return false;
+        }
+
+        $errors = $this->internalFormatValidator->validate($value->xml);
+        if (!empty($errors)) {
+            return false;
+        }
+
+        $richText = new eZRichText($value);
+        $objectAttribute->setContent($richText);
+
+        return true;
+    }
+
+    /**
+     * Adds the necessary DOM structure to the attribute parameters.
+     *
+     * @param eZContentClassAttribute $classAttribute
+     * @param DOMNode $attributeNode
+     * @param DOMNode $attributeParametersNode
+     */
+    public function serializeContentClassAttribute($classAttribute, $attributeNode, $attributeParametersNode)
+    {
+        $dom = $attributeParametersNode->ownerDocument;
+
+        $numberOfRows = (int)$classAttribute->attribute(self::NUM_ROWS_FIELD);
+        $domNode = $dom->createElement('num-rows');
+        $domNode->appendChild($dom->createTextNode((string)$numberOfRows));
+        $attributeParametersNode->appendChild($domNode);
+    }
+
+    /**
+     * Extracts values from the attribute parameters and sets it in the class attribute.
+     *
+     * @param eZContentClassAttribute $classAttribute
+     * @param DOMElement $attributeNode
+     * @param DOMElement $attributeParametersNode
+     */
+    public function unserializeContentClassAttribute($classAttribute, $attributeNode, $attributeParametersNode)
+    {
+        /** @var $domNodes DOMNodeList */
+        $numberOfRows = 0;
+        $domNodes = $attributeParametersNode->getElementsByTagName('num-rows');
+
+        if ($domNodes->length > 0) {
+            $numberOfRows = (int)$domNodes->item(0)->textContent;
+        }
+
+        $classAttribute->setAttribute(self::NUM_ROWS_FIELD, $numberOfRows);
+    }
+
+    /**
+     * Serializes the content object attribute.
+     *
+     * @param eZPackage $package
+     * @param eZContentObjectAttribute $objectAttribute
+     *
+     * @return DOMNode
+     */
+    public function serializeContentObjectAttribute($package, $objectAttribute)
+    {
+        $node = $this->createContentObjectAttributeDOMNode($objectAttribute);
+
+        $richText = $objectAttribute->content();
+        $richTextString = $richText instanceof eZRichText ? (string)$richText : Value::EMPTY_VALUE;
+
+        $dom = $node->ownerDocument;
+
+        $richTextStringNode = $dom->createElement('rich-text-xml');
+        $richTextStringNode->appendChild($dom->createTextNode($richTextString));
+        $node->appendChild($richTextStringNode);
+
+        return $node;
+    }
+
+    /**
+     * Unserializes the content object attribute from provided DOM node.
+     *
+     * @param eZPackage $package
+     * @param eZContentObjectAttribute $objectAttribute
+     * @param DOMElement $attributeNode
+     */
+    public function unserializeContentObjectAttribute($package, $objectAttribute, $attributeNode)
+    {
+        $value = $attributeNode->getElementsByTagName('rich-text-xml')->item(0)->textContent;
+
+        try {
+            $value = $this->fieldType->acceptValue($value);
+        } catch (InvalidArgumentException $e) {
+            return;
+        }
+
+        $errors = $this->internalFormatValidator->validate($value->xml);
+        if (!empty($errors)) {
+            return;
+        }
+
+        $richText = new eZRichText($value);
+        $objectAttribute->setContent($richText);
+    }
+
+    /**
+     * Returns the meta data used for storing search indices.
+     *
+     * @param eZContentObjectAttribute $objectAttribute
+     *
+     * @return string
+     */
+    public function metaData($objectAttribute)
+    {
+        $richText = $objectAttribute->content();
+        if (!$richText instanceof eZRichText) {
+            return '';
+        }
+
+        return $this->extractText($richText->getValue()->xml->documentElement);
+    }
+
+    /**
+     * Returns the title of the current type, this is to form the title of the object.
+     *
+     * @param eZContentObjectAttribute $objectAttribute
+     * @param string $name
+     *
+     * @return string
+     */
+    public function title($objectAttribute, $name = null)
+    {
+        $richText = $objectAttribute->content();
+        if (!$richText instanceof eZRichText) {
+            return '';
+        }
+
+        return $this->fieldType->getName($richText->getValue());
+    }
+
+    /**
+     * Returns if the content is indexable.
+     *
+     * @return bool
+     */
+    public function isIndexable()
+    {
+        return true;
+    }
+
+    /**
+     * Extracts text content of the given $node.
+     *
+     * @param DOMNode $node
+     *
+     * @return string
+     */
+    protected function extractText(DOMNode $node)
+    {
+        $text = '';
+
+        if ($node->childNodes) {
+            foreach ($node->childNodes as $child) {
+                $text .= $this->extractText($child);
+            }
+        } else {
+            $text .= $node->nodeValue . ' ';
+        }
+
+        return $text;
+    }
+}
+
+eZDataType::register(eZRichTextType::DATA_TYPE_STRING, 'eZRichTextType');
