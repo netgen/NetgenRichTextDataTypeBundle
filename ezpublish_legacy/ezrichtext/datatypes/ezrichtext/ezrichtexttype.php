@@ -1,7 +1,7 @@
 <?php
 
 use eZ\Publish\Core\FieldType\RichText\Value;
-use eZ\Publish\API\Repository\Exceptions\InvalidArgumentException;
+use eZ\Publish\API\Repository\Values\Content\Relation;
 
 class eZRichTextType extends eZDataType
 {
@@ -47,7 +47,6 @@ class eZRichTextType extends eZDataType
         $this->container = ezpKernel::instance()->getServiceContainer();
 
         $this->fieldType = $this->container->get('ezpublish.fieldtype.ezrichtext');
-
         $this->internalFormatValidator = $this->container->get('ezpublish.fieldtype.ezrichtext.validator.docbook');
 
         $this->storage = new eZRichTextStorage();
@@ -245,6 +244,97 @@ class eZRichTextType extends eZDataType
     public function deleteStoredObjectAttribute($objectAttribute, $version = null)
     {
         $this->storage->deleteFieldData($objectAttribute, $version);
+    }
+
+    /**
+     * Performs necessary actions with attribute data after object is published,
+     * it means that you have access to published nodes.
+     *
+     * Might be transaction unsafe.
+     *
+     * @param eZContentObjectAttribute $objectAttribute
+     * @param eZContentObject $object
+     * @param eZContentObjectTreeNode[] $publishedNodes
+     *
+     * @return true If the value was stored correctly
+     */
+    public function onPublish($objectAttribute, $object, $publishedNodes)
+    {
+        $currentVersion = $object->currentVersion();
+
+        // We find all translations present in the current version. We calculate
+        // this from the language mask already present in the fetched version,
+        // so no further round-trip to the DB is required.
+        $languageList = eZContentLanguage::decodeLanguageMask(
+            $currentVersion->attribute('language_mask'),
+            true
+        );
+
+        // We want to have the class attribute identifier of the attribute
+        // containing the current ezrichtext, as we then can use the more efficient
+        // eZContentObject->fetchAttributesByIdentifier() to get the data
+        $identifier = $objectAttribute->attribute('contentclass_attribute_identifier');
+
+        $attributes = $object->fetchAttributesByIdentifier(
+            array($identifier),
+            $currentVersion->attribute('version'),
+            $languageList['language_list']
+        );
+
+        foreach ($attributes as $attribute) {
+            $relations = $this->fieldType->getRelations($attribute->content());
+
+            $linkedObjectIds = array_merge(
+                $relations[Relation::LINK]['contentIds'],
+                $this->getObjectIdsForNodeIds($relations[Relation::LINK]['locationIds'])
+            );
+
+            $embeddedObjectIds = array_merge(
+                $relations[Relation::EMBED]['contentIds'],
+                $this->getObjectIdsForNodeIds($relations[Relation::EMBED]['locationIds'])
+            );
+
+            if (!empty($linkedObjectIds)) {
+                $object->appendInputRelationList(
+                    array_unique($linkedObjectIds),
+                    eZContentObject::RELATION_LINK
+                );
+            }
+
+            if (!empty($embeddedObjectIds)) {
+                $object->appendInputRelationList(
+                    array_unique($embeddedObjectIds),
+                    eZContentObject::RELATION_EMBED
+                );
+            }
+
+            if (!empty($linkedObjectIds) || !empty($embeddedObjectIds)) {
+                $object->commitInputRelations($currentVersion->attribute('version'));
+            }
+        }
+
+        return true;
+    }
+
+    /**
+     * Returns all object IDs for provided node IDs.
+     *
+     * @param array $nodeIds
+     *
+     * @return array
+     */
+    protected function getObjectIdsForNodeIds(array $nodeIds)
+    {
+        $objectIds = array();
+
+        foreach ($nodeIds as $nodeId) {
+            $object = eZContentObject::fetchByNodeID($nodeId);
+            if ($object instanceof eZContentObject) {
+                $objectIds[] = $object->attribute('id');
+            }
+        }
+
+        return $objectIds;
     }
 
     /**
