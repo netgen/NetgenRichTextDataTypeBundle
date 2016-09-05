@@ -90,7 +90,7 @@ class eZRichTextStorage
         $fieldIds = array((int)$objectAttribute->attribute('id'));
 
         if ($version === null) {
-            $objectVersions = eZContentObjectVersion::fetchObject(
+            $objectVersions = eZContentObjectVersion::fetchObjectList(
                 eZContentObjectVersion::definition(),
                 null,
                 array(
