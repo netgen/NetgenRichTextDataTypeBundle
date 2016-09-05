@@ -81,7 +81,6 @@ class eZRichTextType extends eZDataType
             $this->fieldType->getEmptyValue();
 
         $objectAttribute->setContent($value);
-        $objectAttribute->store();
     }
 
     /**
