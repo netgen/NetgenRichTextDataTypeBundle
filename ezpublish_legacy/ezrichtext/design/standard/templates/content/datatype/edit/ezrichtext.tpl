@@ -2,11 +2,18 @@
 
 {default attribute_base = 'ContentObjectAttribute'}
 
-<textarea
-    id="ezcoa-{if $attribute_base|ne('ContentObjectAttribute'))}{$attribute_base}-{/if}{$attribute.contentclassattribute_id}_{$attribute.contentclass_attribute_identifier}"
-    class="box ezcc-{$attribute.object.content_class.identifier} ezcca-{$attribute.object.content_class.identifier}_{$attribute.contentclass_attribute_identifier}"
-    name="{$attribute_base}_ezrichtext_data_text_{$attribute.id}"
-    cols="97" rows="{$attribute.contentclass_attribute.data_int1}">
-        {$attribute.content|wash(xhtml)}
-</textarea>
+{symfony_include(
+    'NetgenRichTextFieldTypeBundle::ezrichtext_field_edit.html.twig',
+    hash(
+        'value', $attribute.content,
+        'attr', hash(
+            'id', concat('ezcoa-', cond($attribute_base|ne('ContentObjectAttribute'), concat($attribute_base, '-'), ''), $attribute.contentclassattribute_id, '_', $attribute.contentclass_attribute_identifier),
+            'class', concat('box ezcc-', $attribute.object.content_class.identifier, ' ezcca-', $attribute.object.content_class.identifier, '_', $attribute.contentclass_attribute_identifier),
+            'name', concat($attribute_base, '_ezrichtext_data_text_', $attribute.id),
+            'cols', '97',
+            'rows', $attribute.contentclass_attribute.data_int1
+        )
+    )
+)}
+
 {/default}

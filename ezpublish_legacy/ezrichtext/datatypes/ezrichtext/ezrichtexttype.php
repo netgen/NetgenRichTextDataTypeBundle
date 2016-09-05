@@ -220,7 +220,9 @@ class eZRichTextType extends eZDataType
      */
     public function objectAttributeContent($objectAttribute)
     {
-        return new Value($objectAttribute->attribute(self::RICH_TEXT_FIELD));
+        $value = new Value($objectAttribute->attribute(self::RICH_TEXT_FIELD));
+
+        return $this->storage->getFieldData($objectAttribute, $value);
     }
 
     /**
@@ -230,7 +232,20 @@ class eZRichTextType extends eZDataType
      */
     public function storeObjectAttribute($objectAttribute)
     {
-        $objectAttribute->setAttribute(self::RICH_TEXT_FIELD, (string)$objectAttribute->content());
+        $value = $this->storage->storeFieldData($objectAttribute, $objectAttribute->content());
+
+        $objectAttribute->setAttribute(self::RICH_TEXT_FIELD, (string)$value);
+    }
+
+    /**
+     * Deletes the object attribute.
+     *
+     * @param eZContentObjectAttribute $objectAttribute
+     * @param int $version
+     */
+    public function deleteStoredObjectAttribute($objectAttribute, $version = null)
+    {
+        $this->storage->deleteFieldData($objectAttribute, $version);
     }
 
     /**

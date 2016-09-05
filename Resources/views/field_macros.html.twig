@@ -1,0 +1,6 @@
+{% macro attributes(attr) %}
+{% spaceless %}
+    {% set attr = attr|default( {} ) %}
+    {% for attrname, attrvalue in attr %} {{ attrname }}="{{ attrvalue }}" {% endfor %}
+{% endspaceless %}
+{% endmacro %}
