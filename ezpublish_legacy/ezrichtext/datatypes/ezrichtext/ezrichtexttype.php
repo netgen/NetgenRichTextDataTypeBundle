@@ -310,6 +310,10 @@ class eZRichTextType extends eZDataType
 
             if (!empty($linkedObjectIds) || !empty($embeddedObjectIds)) {
                 $object->commitInputRelations($currentVersion->attribute('version'));
+
+                // Apparently, eZ kernel does not know how to work with composite relations
+                // so we remove those and create the non composite ones.
+                $this->fixInputRelations($object, $currentVersion->attribute('version'));
             }
         }
 
@@ -335,6 +339,52 @@ class eZRichTextType extends eZDataType
         }
 
         return $objectIds;
+    }
+
+    /**
+     * Converts all composite relations to non composite ones.
+     *
+     * @param \eZContentObject $object
+     * @param int $versionNo
+     */
+    protected function fixInputRelations(eZContentObject $object, $versionNo)
+    {
+        $validRelationTypes = array(1, 2, 4, 8, 16, 32, 64, 128);
+
+        $db = eZDB::instance();
+        $rows = $db->arrayQuery(
+            "SELECT * FROM ezcontentobject_link
+            WHERE from_contentobject_id={$object->attribute('id')}
+            AND from_contentobject_version={$versionNo}"
+        );
+
+        foreach ($rows as $row) {
+            $relationType = (int)$row['relation_type'];
+
+            if (!in_array($relationType, $validRelationTypes)) {
+                foreach ($validRelationTypes as $validRelationType) {
+                    if ($relationType & $validRelationType) {
+                        $db->query(
+                            "INSERT INTO ezcontentobject_link (
+                                from_contentobject_id,
+                                from_contentobject_version,
+                                to_contentobject_id,
+                                contentclassattribute_id,
+                                relation_type
+                            ) VALUES (
+                                {$row['from_contentobject_id']},
+                                {$row['from_contentobject_version']},
+                                {$row['to_contentobject_id']},
+                                {$row['contentclassattribute_id']},
+                                {$validRelationType}
+                            )
+                        ");
+                    }
+                }
+
+                $db->query("DELETE FROM ezcontentobject_link WHERE id = {$row['id']}");
+            }
+        }
     }
 
     /**
