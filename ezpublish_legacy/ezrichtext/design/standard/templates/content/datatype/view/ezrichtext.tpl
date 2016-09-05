@@ -5,7 +5,7 @@
 {symfony_include(
     'NetgenRichTextFieldTypeBundle::ezrichtext_field.html.twig',
     hash(
-        'value', $attribute.content.value,
+        'value', $attribute.content,
         'attr', $attr
     )
 )}

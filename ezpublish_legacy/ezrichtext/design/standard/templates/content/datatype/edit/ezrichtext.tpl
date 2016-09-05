@@ -7,6 +7,6 @@
     class="box ezcc-{$attribute.object.content_class.identifier} ezcca-{$attribute.object.content_class.identifier}_{$attribute.contentclass_attribute_identifier}"
     name="{$attribute_base}_ezrichtext_data_text_{$attribute.id}"
     cols="97" rows="{$attribute.contentclass_attribute.data_int1}">
-        {$attribute.content.raw|wash(xhtml)}
+        {$attribute.content|wash(xhtml)}
 </textarea>
 {/default}

@@ -29,6 +29,11 @@ class eZRichTextType extends eZDataType
     protected $internalFormatValidator;
 
     /**
+     * @var \eZRichTextStorage
+     */
+    protected $storage;
+
+    /**
      * Constructor.
      */
     public function __construct()
@@ -42,7 +47,10 @@ class eZRichTextType extends eZDataType
         $this->container = ezpKernel::instance()->getServiceContainer();
 
         $this->fieldType = $this->container->get('ezpublish.fieldtype.ezrichtext');
+
         $this->internalFormatValidator = $this->container->get('ezpublish.fieldtype.ezrichtext.validator.docbook');
+
+        $this->storage = new eZRichTextStorage();
     }
 
     /**
@@ -68,11 +76,11 @@ class eZRichTextType extends eZDataType
      */
     public function initializeObjectAttribute($objectAttribute, $currentVersion, $originalContentObjectAttribute)
     {
-        $richText = $currentVersion != false ?
+        $value = $currentVersion != false ?
             $originalContentObjectAttribute->content() :
-            new eZRichText();
+            $this->fieldType->getEmptyValue();
 
-        $objectAttribute->setContent($richText);
+        $objectAttribute->setContent($value);
         $objectAttribute->store();
     }
 
@@ -181,8 +189,7 @@ class eZRichTextType extends eZDataType
 
         $value = trim($http->postVariable($base . self::RICH_TEXT_VARIABLE . $objectAttributeId));
 
-        $richText = new eZRichText($value);
-        $objectAttribute->setContent($richText);
+        $objectAttribute->setContent(new Value($value));
 
         return true;
     }
@@ -196,12 +203,12 @@ class eZRichTextType extends eZDataType
      */
     public function hasObjectAttributeContent($objectAttribute)
     {
-        $richText = $objectAttribute->content();
-        if (!$richText instanceof eZRichText) {
+        $value = $objectAttribute->content();
+        if (!$value instanceof Value) {
             return false;
         }
 
-        return !$this->fieldType->isEmptyValue($richText->getValue());
+        return !$this->fieldType->isEmptyValue($value);
     }
 
     /**
@@ -213,7 +220,7 @@ class eZRichTextType extends eZDataType
      */
     public function objectAttributeContent($objectAttribute)
     {
-        return new eZRichText($objectAttribute->attribute(self::RICH_TEXT_FIELD));
+        return new Value($objectAttribute->attribute(self::RICH_TEXT_FIELD));
     }
 
     /**
@@ -235,9 +242,10 @@ class eZRichTextType extends eZDataType
      */
     public function toString($objectAttribute)
     {
-        $richText = $objectAttribute->content();
+        $value = $objectAttribute->content();
+        $value = $value instanceof Value ? $value : $this->fieldType->getEmptyValue();
 
-        return $richText instanceof eZRichText ? (string)$richText : Value::EMPTY_VALUE;
+        return (string)$value;
     }
 
     /**
@@ -261,8 +269,7 @@ class eZRichTextType extends eZDataType
             return false;
         }
 
-        $richText = new eZRichText($value);
-        $objectAttribute->setContent($richText);
+        $objectAttribute->setContent($value);
 
         return true;
     }
@@ -316,13 +323,13 @@ class eZRichTextType extends eZDataType
     {
         $node = $this->createContentObjectAttributeDOMNode($objectAttribute);
 
-        $richText = $objectAttribute->content();
-        $richTextString = $richText instanceof eZRichText ? (string)$richText : Value::EMPTY_VALUE;
+        $value = $objectAttribute->content();
+        $value = $value instanceof Value ? $value : $this->fieldType->getEmptyValue();
 
         $dom = $node->ownerDocument;
 
         $richTextStringNode = $dom->createElement('rich-text-xml');
-        $richTextStringNode->appendChild($dom->createTextNode($richTextString));
+        $richTextStringNode->appendChild($dom->createTextNode((string)$value));
         $node->appendChild($richTextStringNode);
 
         return $node;
@@ -350,8 +357,7 @@ class eZRichTextType extends eZDataType
             return;
         }
 
-        $richText = new eZRichText($value);
-        $objectAttribute->setContent($richText);
+        $objectAttribute->setContent($value);
     }
 
     /**
@@ -363,12 +369,12 @@ class eZRichTextType extends eZDataType
      */
     public function metaData($objectAttribute)
     {
-        $richText = $objectAttribute->content();
-        if (!$richText instanceof eZRichText) {
+        $value = $objectAttribute->content();
+        if (!$value instanceof Value) {
             return '';
         }
 
-        return $this->extractText($richText->getValue()->xml->documentElement);
+        return $this->extractText($value->xml->documentElement);
     }
 
     /**
@@ -381,12 +387,12 @@ class eZRichTextType extends eZDataType
      */
     public function title($objectAttribute, $name = null)
     {
-        $richText = $objectAttribute->content();
-        if (!$richText instanceof eZRichText) {
+        $value = $objectAttribute->content();
+        if (!$value instanceof Value) {
             return '';
         }
 
-        return $this->fieldType->getName($richText->getValue());
+        return $this->fieldType->getName($value);
     }
 
     /**
