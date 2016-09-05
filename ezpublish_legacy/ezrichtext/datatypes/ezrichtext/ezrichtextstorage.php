@@ -3,6 +3,7 @@
 use eZ\Publish\Core\FieldType\RichText\Value;
 use eZ\Publish\SPI\Persistence\Content\Field;
 use eZ\Publish\SPI\Persistence\Content\VersionInfo;
+use eZ\Publish\SPI\Persistence\Content\ContentInfo;
 
 class eZRichTextStorage
 {
@@ -133,6 +134,11 @@ class eZRichTextStorage
         return new VersionInfo(
             array(
                 'versionNo' => $versionNo,
+                'contentInfo' => new ContentInfo(
+                    array(
+                        'id' => $contentId,
+                    )
+                ),
             )
         );
     }
