@@ -430,13 +430,66 @@ class eZRichTextType extends eZDataType
         $value = $objectAttribute->content();
         $value = $value instanceof Value ? $value : $this->fieldType->getEmptyValue();
 
+        $xml = clone $value->xml;
+
+        $this->transformLinksToRemoteLinks($xml);
+
         $dom = $node->ownerDocument;
 
-        $richTextStringNode = $dom->createElement('rich-text-xml');
-        $richTextStringNode->appendChild($dom->createTextNode((string)$value));
-        $node->appendChild($richTextStringNode);
+        $valueNode = $dom->createElement('rich-text-xml');
+        $valueNode->appendChild($dom->createTextNode($xml->saveXML()));
+        $node->appendChild($valueNode);
 
         return $node;
+    }
+
+    /**
+     * Transforms the xlink:href attribute of ezcontent and ezlocation links
+     * from IDs to remote IDs, for usage by serialize/unserialize process.
+     *
+     * @param \DOMDocument $xml
+     */
+    protected function transformLinksToRemoteLinks(DOMDocument $xml)
+    {
+        $xpath = new DOMXPath($xml);
+        $xpath->registerNamespace('docbook', 'http://docbook.org/ns/docbook');
+
+        foreach (array('ezembedinline', 'ezembed', 'link', 'ezlink') as $tagName) {
+            $xpathExpression = "//docbook:{$tagName}[starts-with( @xlink:href, 'ezcontent://' ) or starts-with( @xlink:href, 'ezlocation://' )]";
+            /** @var \DOMElement $element */
+            foreach ($xpath->query($xpathExpression) as $element) {
+                preg_match('~^(.+)://([^#]*)?(#.*|\\s*)?$~', $element->getAttribute('xlink:href'), $matches);
+                list(, $scheme, $id, $fragment) = $matches;
+
+                if (empty($id)) {
+                    continue;
+                }
+
+                $href = '';
+
+                if ($scheme === 'ezcontent') {
+                    $object = eZContentObject::fetch($id);
+                    if (!$object instanceof eZContentObject) {
+                        continue;
+                    }
+
+                    $href = "{$scheme}://{$object->attribute('remote_id')}{$fragment}";
+                } elseif ($scheme === 'ezlocation') {
+                    $node = eZContentObjectTreeNode::fetch($id);
+                    if (!$node instanceof eZContentObjectTreeNode) {
+                        continue;
+                    }
+
+                    $href = "{$scheme}://{$node->attribute('remote_id')}{$fragment}";
+                }
+
+                if (empty($href)) {
+                    continue;
+                }
+
+                $element->setAttribute('xlink:href', $href);
+            }
+        }
     }
 
     /**
@@ -448,7 +501,12 @@ class eZRichTextType extends eZDataType
      */
     public function unserializeContentObjectAttribute($package, $objectAttribute, $attributeNode)
     {
-        $value = $attributeNode->getElementsByTagName('rich-text-xml')->item(0)->textContent;
+        $xmlString = $attributeNode->getElementsByTagName('rich-text-xml')->item(0)->textContent;
+
+        $value = new DOMDocument();
+        $value->loadXML($xmlString);
+
+        $this->transformRemoteLinksToLinks($value);
 
         try {
             $value = $this->fieldType->acceptValue($value);
@@ -462,6 +520,47 @@ class eZRichTextType extends eZDataType
         }
 
         $objectAttribute->setContent($value);
+    }
+
+    /**
+     * Transforms the xlink:href attribute of ezcontent and ezlocation links
+     * from remote IDs to IDs, for usage by serialize/unserialize process.
+     *
+     * @param \DOMDocument $xml
+     */
+    protected function transformRemoteLinksToLinks(DOMDocument $xml)
+    {
+        $xpath = new DOMXPath($xml);
+        $xpath->registerNamespace('docbook', 'http://docbook.org/ns/docbook');
+
+        foreach (array('ezembedinline', 'ezembed', 'link', 'ezlink') as $tagName) {
+            $xpathExpression = "//docbook:{$tagName}[starts-with( @xlink:href, 'ezcontent://' ) or starts-with( @xlink:href, 'ezlocation://' )]";
+            /** @var \DOMElement $element */
+            foreach ($xpath->query($xpathExpression) as $element) {
+                preg_match('~^(.+)://([^#]*)?(#.*|\\s*)?$~', $element->getAttribute('xlink:href'), $matches);
+                list(, $scheme, $remoteId, $fragment) = $matches;
+
+                if ($scheme === 'ezcontent') {
+                    $object = eZContentObject::fetchByRemoteID($remoteId);
+                    if (!$object instanceof eZContentObject) {
+                        $element->parentNode->removeChild($element);
+                        continue;
+                    }
+
+                    $href = "{$scheme}://{$object->attribute('id')}{$fragment}";
+                } else {
+                    $node = eZContentObjectTreeNode::fetchByRemoteID($remoteId);
+                    if (!$node instanceof eZContentObjectTreeNode) {
+                        $element->parentNode->removeChild($element);
+                        continue;
+                    }
+
+                    $href = "{$scheme}://{$node->attribute('node_id')}{$fragment}";
+                }
+
+                $element->setAttribute('xlink:href', $href);
+            }
+        }
     }
 
     /**
