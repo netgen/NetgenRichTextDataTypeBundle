@@ -2,6 +2,8 @@
 
 use eZ\Publish\Core\FieldType\RichText\Value;
 use eZ\Publish\API\Repository\Values\Content\Relation;
+use eZ\Publish\API\Repository\Exceptions\InvalidArgumentException;
+use eZ\Publish\Core\Repository\Values\ContentType\FieldDefinition;
 
 class eZRichTextType extends eZDataType
 {
@@ -24,11 +26,6 @@ class eZRichTextType extends eZDataType
     protected $fieldType;
 
     /**
-     * @var \eZ\Publish\Core\FieldType\RichText\Validator
-     */
-    protected $internalFormatValidator;
-
-    /**
      * @var \eZRichTextStorage
      */
     protected $storage;
@@ -47,7 +44,6 @@ class eZRichTextType extends eZDataType
         $this->container = ezpKernel::instance()->getServiceContainer();
 
         $this->fieldType = $this->container->get('ezpublish.fieldtype.ezrichtext');
-        $this->internalFormatValidator = $this->container->get('ezpublish.fieldtype.ezrichtext.validator.docbook');
 
         $this->storage = new eZRichTextStorage();
     }
@@ -152,20 +148,21 @@ class eZRichTextType extends eZDataType
         try {
             $value = $this->fieldType->acceptValue($value);
         } catch (InvalidArgumentException $e) {
-            $objectAttribute->setValidationError(ezpI18n::tr('extension/ezrichtext/datatypes', 'Attribute contains invalid data.'));
+            $objectAttribute->setValidationError($e->getMessage());
 
             return eZInputValidator::STATE_INVALID;
         }
 
-        $errors = $this->internalFormatValidator->validate($value->xml);
-
-        if (!empty($errors)) {
-            $objectAttribute->setValidationError(ezpI18n::tr('extension/ezrichtext/datatypes', "Validation of XML content failed:\n" . implode("\n", $errors)));
-
-            return eZInputValidator::STATE_INVALID;
+        $errors = $this->fieldType->validate(new FieldDefinition(), $value);
+        if (empty($errors)) {
+            return eZInputValidator::STATE_ACCEPTED;
         }
 
-        return eZInputValidator::STATE_ACCEPTED;
+        $objectAttribute->setValidationError(
+            $errors[0]->getTranslatableMessage()->message
+        );
+
+        return eZInputValidator::STATE_INVALID;
     }
 
     /**
@@ -418,7 +415,7 @@ class eZRichTextType extends eZDataType
             return false;
         }
 
-        $errors = $this->internalFormatValidator->validate($value->xml);
+        $errors = $this->fieldType->validate(new FieldDefinition(), $value);
         if (!empty($errors)) {
             return false;
         }
@@ -564,7 +561,7 @@ class eZRichTextType extends eZDataType
             return;
         }
 
-        $errors = $this->internalFormatValidator->validate($value->xml);
+        $errors = $this->fieldType->validate(new FieldDefinition(), $value);
         if (!empty($errors)) {
             return;
         }
