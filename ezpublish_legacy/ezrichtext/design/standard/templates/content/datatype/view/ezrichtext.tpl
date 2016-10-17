@@ -3,7 +3,7 @@
 {/if}
 
 {symfony_include(
-    'NetgenRichTextFieldTypeBundle::ezrichtext_field.html.twig',
+    'NetgenRichTextDataTypeBundle::ezrichtext_field.html.twig',
     hash(
         'value', $attribute.content,
         'attr', $attr

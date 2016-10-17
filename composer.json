@@ -1,6 +1,6 @@
 {
-    "name": "netgen/richtext-fieldtype-bundle",
-    "description": "eZ Rich Text field type bundle",
+    "name": "netgen/richtext-datatype-bundle",
+    "description": "eZ Platform rich text datatype bundle",
     "license": "GPL-2.0",
     "authors": [
         {
@@ -13,7 +13,7 @@
         "netgen/ngsymfonytools": "^1.1"
     },
     "autoload": {
-        "psr-4": { "Netgen\\Bundle\\RichTextFieldTypeBundle\\": "" }
+        "psr-4": { "Netgen\\Bundle\\RichTextDataTypeBundle\\": "" }
     },
     "extra": {
         "branch-alias": {

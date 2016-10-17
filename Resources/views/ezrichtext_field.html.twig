@@ -1,4 +1,4 @@
-{% import 'NetgenRichTextFieldTypeBundle::field_macros.html.twig' as macros %}
+{% import 'NetgenRichTextDataTypeBundle::field_macros.html.twig' as macros %}
 
 <div {{ macros.attributes(attr) }}>
     {{ value.xml|richtext_to_html5|raw }}

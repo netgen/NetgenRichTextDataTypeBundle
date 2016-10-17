@@ -1,6 +1,6 @@
 <?php
 
-namespace Netgen\Bundle\RichTextFieldTypeBundle\DependencyInjection;
+namespace Netgen\Bundle\RichTextDataTypeBundle\DependencyInjection;
 
 use Symfony\Component\Config\Definition\Builder\TreeBuilder;
 use Symfony\Component\Config\Definition\ConfigurationInterface;

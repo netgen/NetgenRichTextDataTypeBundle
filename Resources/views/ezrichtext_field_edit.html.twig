@@ -1,4 +1,4 @@
-{% import 'NetgenRichTextFieldTypeBundle::field_macros.html.twig' as macros %}
+{% import 'NetgenRichTextDataTypeBundle::field_macros.html.twig' as macros %}
 
 <textarea {{ macros.attributes(attr) }}>
     {{ value.xml.saveXml()|raw }}
