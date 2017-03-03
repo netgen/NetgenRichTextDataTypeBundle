@@ -1,6 +1,6 @@
 {
     "name": "netgen/richtext-datatype-bundle",
-    "description": "eZ Platform rich text datatype bundle allows legacy administration to work with eZ Platform ezrichtext field type",
+    "description": "Netgen RichText datatype bundle allows eZ Publish Legacy to work with rich text (ezrichtext) field type available in eZ Platform",
     "license": "GPL-2.0",
     "type": "ezplatform-bundle",
     "authors": [
