@@ -1,7 +1,8 @@
 {
     "name": "netgen/richtext-datatype-bundle",
-    "description": "eZ Platform rich text datatype bundle",
+    "description": "eZ Platform rich text datatype bundle allows legacy administration to work with eZ Platform ezrichtext field type",
     "license": "GPL-2.0",
+    "type": "ezplatform-bundle",
     "authors": [
         {
             "name": "Netgen",
@@ -9,7 +10,7 @@
         }
     ],
     "require": {
-        "ezsystems/ezpublish-kernel": "*",
+        "ezsystems/ezpublish-kernel": "^6.0",
         "netgen/ngsymfonytools": "^1.1"
     },
     "autoload": {
