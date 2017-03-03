@@ -9,9 +9,6 @@ class eZRichTextType extends eZDataType
 {
     const DATA_TYPE_STRING = 'ezrichtext';
 
-    const NUM_ROWS_VARIABLE = '_ezrichtext_num_rows_';
-    const NUM_ROWS_FIELD = 'data_int1';
-
     const RICH_TEXT_VARIABLE = '_ezrichtext_data_text_';
     const RICH_TEXT_FIELD = 'data_text';
 
@@ -49,20 +46,6 @@ class eZRichTextType extends eZDataType
     }
 
     /**
-     * Initializes the content class attribute.
-     *
-     * @param eZContentClassAttribute $classAttribute
-     */
-    public function initializeClassAttribute($classAttribute)
-    {
-        if ($classAttribute->attribute(self::NUM_ROWS_FIELD) === null) {
-            $classAttribute->setAttribute(self::NUM_ROWS_FIELD, 10);
-        }
-
-        $classAttribute->store();
-    }
-
-    /**
      * Initializes content object attribute based on another attribute.
      *
      * @param eZContentObjectAttribute $objectAttribute
@@ -76,48 +59,6 @@ class eZRichTextType extends eZDataType
             $this->fieldType->getEmptyValue();
 
         $objectAttribute->setContent($value);
-    }
-
-    /**
-     * Validates class attribute HTTP input.
-     *
-     * @param eZHTTPTool $http
-     * @param string $base
-     * @param eZContentClassAttribute $classAttribute
-     *
-     * @return bool
-     */
-    public function validateClassAttributeHTTPInput($http, $base, $classAttribute)
-    {
-        $classAttributeId = $classAttribute->attribute('id');
-
-        $numberOfRows = (int)$http->postVariable($base . self::NUM_ROWS_VARIABLE . $classAttributeId, 10);
-
-        return $numberOfRows > 0 ? eZInputValidator::STATE_ACCEPTED : eZInputValidator::STATE_INVALID;
-    }
-
-    /**
-     * Fetches class attribute HTTP input and stores it.
-     *
-     * @param eZHTTPTool $http
-     * @param string $base
-     * @param eZContentClassAttribute $classAttribute
-     *
-     * @return bool
-     */
-    public function fetchClassAttributeHTTPInput($http, $base, $classAttribute)
-    {
-        $classAttributeId = $classAttribute->attribute('id');
-
-        $numberOfRows = (int)$http->postVariable($base . self::NUM_ROWS_VARIABLE . $classAttributeId, 10);
-
-        if ($numberOfRows <= 0) {
-            return false;
-        }
-
-        $classAttribute->setAttribute(self::NUM_ROWS_FIELD, $numberOfRows);
-
-        return true;
     }
 
     /**
@@ -423,43 +364,6 @@ class eZRichTextType extends eZDataType
         $objectAttribute->setContent($value);
 
         return true;
-    }
-
-    /**
-     * Adds the necessary DOM structure to the attribute parameters.
-     *
-     * @param eZContentClassAttribute $classAttribute
-     * @param DOMNode $attributeNode
-     * @param DOMNode $attributeParametersNode
-     */
-    public function serializeContentClassAttribute($classAttribute, $attributeNode, $attributeParametersNode)
-    {
-        $dom = $attributeParametersNode->ownerDocument;
-
-        $numberOfRows = (int)$classAttribute->attribute(self::NUM_ROWS_FIELD);
-        $domNode = $dom->createElement('num-rows');
-        $domNode->appendChild($dom->createTextNode((string)$numberOfRows));
-        $attributeParametersNode->appendChild($domNode);
-    }
-
-    /**
-     * Extracts values from the attribute parameters and sets it in the class attribute.
-     *
-     * @param eZContentClassAttribute $classAttribute
-     * @param DOMElement $attributeNode
-     * @param DOMElement $attributeParametersNode
-     */
-    public function unserializeContentClassAttribute($classAttribute, $attributeNode, $attributeParametersNode)
-    {
-        /** @var $domNodes DOMNodeList */
-        $numberOfRows = 0;
-        $domNodes = $attributeParametersNode->getElementsByTagName('num-rows');
-
-        if ($domNodes->length > 0) {
-            $numberOfRows = (int)$domNodes->item(0)->textContent;
-        }
-
-        $classAttribute->setAttribute(self::NUM_ROWS_FIELD, $numberOfRows);
     }
 
     /**
