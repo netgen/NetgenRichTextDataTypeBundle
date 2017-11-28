@@ -40,7 +40,7 @@ class eZRichTextType extends eZDataType
 
         $this->container = ezpKernel::instance()->getServiceContainer();
 
-        $this->fieldType = $this->container->get('ezpublish.fieldtype.ezrichtext');
+        $this->fieldType = $this->container->get('ezpublish.fieldType.ezrichtext');
 
         $this->storage = new eZRichTextStorage();
     }

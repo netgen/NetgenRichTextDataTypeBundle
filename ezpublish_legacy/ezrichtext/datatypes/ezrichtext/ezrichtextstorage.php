@@ -39,9 +39,9 @@ class eZRichTextStorage
     {
         $this->container = ezpKernel::instance()->getServiceContainer();
 
-        $this->fieldType = $this->container->get('ezpublish.fieldtype.ezrichtext');
+        $this->fieldType = $this->container->get('ezpublish.fieldType.ezrichtext');
         $this->contentHandler = $this->container->get('ezpublish.spi.persistence.content_handler');
-        $this->externalStorage = $this->container->get('ezpublish.fieldtype.ezrichtext.externalstorage');
+        $this->externalStorage = $this->container->get('ezpublish.fieldType.ezrichtext.externalStorage');
 
         $this->context = array(
             'identifier' => 'LegacyStorage',
