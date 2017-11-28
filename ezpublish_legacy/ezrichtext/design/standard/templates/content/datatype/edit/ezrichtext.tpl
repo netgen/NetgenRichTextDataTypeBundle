@@ -3,7 +3,7 @@
 {default attribute_base = 'ContentObjectAttribute'}
 
 {symfony_include(
-    'NetgenRichTextDataTypeBundle::ezrichtext_field_edit.html.twig',
+    '@NetgenRichTextDataType/ezrichtext_field_edit.html.twig',
     hash(
         'value', $attribute.content,
         'attr', hash(
