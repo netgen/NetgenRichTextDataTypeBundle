@@ -28,11 +28,6 @@ class eZRichTextStorage
     protected $externalStorage;
 
     /**
-     * @var array
-     */
-    protected $context;
-
-    /**
      * Constructor.
      */
     public function __construct()
@@ -42,11 +37,6 @@ class eZRichTextStorage
         $this->fieldType = $this->container->get('ezpublish.fieldType.ezrichtext');
         $this->contentHandler = $this->container->get('ezpublish.spi.persistence.content_handler');
         $this->externalStorage = $this->container->get('ezpublish.fieldType.ezrichtext.externalStorage');
-
-        $this->context = array(
-            'identifier' => 'LegacyStorage',
-            'connection' => $this->container->get('ezpublish.api.storage_engine.legacy.dbhandler'),
-        );
     }
 
     public function storeFieldData(eZContentObjectAttribute $objectAttribute, Value $value)
@@ -58,11 +48,7 @@ class eZRichTextStorage
 
         $field = $this->getField($objectAttribute, $value);
 
-        $this->externalStorage->storeFieldData(
-            $versionInfo,
-            $field,
-            $this->context
-        );
+        $this->externalStorage->storeFieldData($versionInfo, $field, array());
 
         return $this->fieldType->fromPersistenceValue($field->value);
     }
@@ -76,11 +62,7 @@ class eZRichTextStorage
 
         $field = $this->getField($objectAttribute, $value);
 
-        $this->externalStorage->getFieldData(
-            $versionInfo,
-            $field,
-            $this->context
-        );
+        $this->externalStorage->getFieldData($versionInfo, $field, array());
 
         return $this->fieldType->fromPersistenceValue($field->value);
     }
@@ -113,11 +95,7 @@ class eZRichTextStorage
                 $versionNo
             );
 
-            $this->externalStorage->deleteFieldData(
-                $versionInfo,
-                $fieldIds,
-                $this->context
-            );
+            $this->externalStorage->deleteFieldData($versionInfo, $fieldIds, array());
         }
     }
 
