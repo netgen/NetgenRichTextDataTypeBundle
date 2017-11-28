@@ -50,3 +50,7 @@ The bundle is still in prototype phase, but basic tests showed it working correc
     ```
 
 5. Bundle is ready for usage in eZ Publish Legacy, including adding `ezrichtext` attribute to your classes, editing content with the attribute as well as rendering via `attribute_view_gui`.
+
+## Changelog
+
+[See all changes here](CHANGELOG.md).
