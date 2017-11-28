@@ -10,7 +10,7 @@
         }
     ],
     "require": {
-        "ezsystems/ezpublish-kernel": "^6.0|^7.0",
+        "ezsystems/ezpublish-kernel": "^6.11|^7.0",
         "netgen/ngsymfonytools": "^1.1"
     },
     "autoload": {
