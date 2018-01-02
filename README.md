@@ -30,10 +30,11 @@ The bundle is still in prototype phase, but basic tests showed it working correc
     );
     ```
 
-3. Activate the legacy `ezrichtext` extension in your `site.ini.append.php` in eZ Publish Legacy:
+3. Activate legacy `ezrichtext` and `ngsymfonytools` extensions in your `site.ini.append.php` in eZ Publish Legacy:
 
     ```ini
     [ExtensionSettings]
+    ActiveExtensions[]=ngsymfonytools
     ActiveExtensions[]=ezrichtext
     ```
 
