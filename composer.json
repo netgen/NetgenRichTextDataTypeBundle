@@ -11,7 +11,7 @@
     ],
     "require": {
         "ibexa/core": "^4.1",
-        "netgen/ngsymfonytools": "^1.1"
+        "netgen/ngsymfonytools": "^2.0"
     },
     "conflict": {
         "ezsystems/ezpublish-legacy": "<2017.10"
