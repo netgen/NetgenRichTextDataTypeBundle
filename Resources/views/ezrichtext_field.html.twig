@@ -1,5 +1,5 @@
 {% import '@NetgenRichTextDataType/field_macros.html.twig' as macros %}
 
 <div {{ macros.attributes(attr) }}>
-    {{ value.xml|richtext_to_html5|raw }}
+    {{ value.xml|ibexa_richtext_to_html5|raw }}
 </div>
