@@ -13,9 +13,6 @@
         "ibexa/core": "^4.1",
         "netgen/ngsymfonytools": "^2.0"
     },
-    "conflict": {
-        "ezsystems/ezpublish-legacy": "<2017.10"
-    },
     "autoload": {
         "psr-4": { "Netgen\\Bundle\\RichTextDataTypeBundle\\": "" }
     },
